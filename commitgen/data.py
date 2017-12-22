@@ -87,6 +87,8 @@ def parse_commits(commits, nl_tokenizer, code_tokenizer, ignore_types=None, filt
     :param language: (str) the language of the code in the commits
     :return: list of tuples of the form (sha, code, parsed_nl, parsed_code)
     """
+
+    shaid = list()
     parsed_commits = []
     for i, (sha, message, code_lines) in enumerate(commits):
         parsed_nl = nl_tokenizer.tokenize(message)
@@ -105,8 +107,16 @@ def parse_commits(commits, nl_tokenizer, code_tokenizer, ignore_types=None, filt
         else:
             parsed_code = code_tokenizer.tokenize(code_lines, ignore_types=ignore_types)
         parsed_commit = ParsedCommit(i, '\n'.join(code_lines), parsed_nl, parsed_code)
+
+        shaid.append('{0},{1}'.format(i, sha))
+
         if all([func(parsed_commit) for func in filters]):
             parsed_commits.append(parsed_commit)
+        
+        with open('./id_sha.txt', 'w') as outfile:
+            for k in shaid:
+                outfile.write("%s\n" % k)
+
     return parsed_commits
 
 
@@ -246,6 +256,7 @@ def split_list(dataset, ratio=0.8, generate_test=False):
     """
 
     train, valid, test = [], [], []
+    test_sha = []
     dev_size = int(len(dataset) * ratio)
 
     if generate_test:
@@ -256,12 +267,11 @@ def split_list(dataset, ratio=0.8, generate_test=False):
             if r <= ratio and len(train) + len(valid) < dev_size:
                 rr = random.random()
                 if rr < 0.9 and len(train) < train_size:
-                    train.append(datasetEntry)
+                    train.append(datasetEntry)                    
                 else:
                     valid.append(datasetEntry)
             else:
                 test.append(datasetEntry)
-
         return train, valid, test
 
     else:
